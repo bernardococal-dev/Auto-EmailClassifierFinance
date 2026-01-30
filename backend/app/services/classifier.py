@@ -1,27 +1,11 @@
-import re
+from app.services.advanced_classifier import classify_email as advanced_classify
 
-def classify_email(text: str, attachments: list[dict] | None = None) -> dict:
-    """Return dict: {"tipo": "NOTA_FISCAL"|"REQUISICAO_COMPRA"|"OUTROS", "confidence": float}
 
-    Rules (MVP):
-      - If XML NF-e attachment or string 'xml' + 'NFe' in attachment name -> NOTA_FISCAL
-      - If body contains 'nota fiscal' | 'nf' | 'danfe' -> NOTA_FISCAL
-      - If body contains 'requisição' | 'rc' | 'pedido de compra' -> REQUISICAO_COMPRA
-      - else OUTROS
+def classify_email(text: str, attachments: list[dict] | None = None, remetente: str | None = None) -> dict:
+    """Wrapper to keep backward compatibility. Calls the advanced classifier which returns
+    {'tipo','subtipo','confidence'}. For backwards compatibility with older callers that expect
+    only tipo/confidence, we still provide these keys.
     """
-    t = (text or '').lower()
-    attachments = attachments or []
+    res = advanced_classify(text, attachments or [], remetente)
+    return res
 
-    # Detect XML NF-e
-    for a in attachments:
-        name = a.get('nome_arquivo', '').lower()
-        if name.endswith('.xml') and ('nfe' in name or 'nf-e' in name or 'nota fiscal' in name):
-            return {'tipo': 'NOTA_FISCAL', 'confidence': 0.99}
-
-    if any(k in t for k in ['nota fiscal', 'nf', 'danfe']):
-        return {'tipo': 'NOTA_FISCAL', 'confidence': 0.9}
-
-    if any(k in t for k in ['requisição', 'rc', 'pedido de compra', 'requisicao']):
-        return {'tipo': 'REQUISICAO_COMPRA', 'confidence': 0.9}
-
-    return {'tipo': 'OUTROS', 'confidence': 0.6}

@@ -1,6 +1,7 @@
 import enum
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from sqlalchemy import (
     Column,
     String,
@@ -16,9 +17,13 @@ from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
+# Helper to get UTC-aware now
+def now_utc():
+    return datetime.now(tz=timezone.utc)
+
 class DocumentType(enum.Enum):
-    NOTA_FISCAL = "NOTA_FISCAL"
-    REQUISICAO_COMPRA = "REQUISICAO_COMPRA"
+    DOCUMENTO_FORNECEDOR = "DOCUMENTO_FORNECEDOR"
+    ENTRADA_INTERNA = "ENTRADA_INTERNA"
     OUTROS = "OUTROS"
 
 class DocumentStatus(enum.Enum):
@@ -27,6 +32,13 @@ class DocumentStatus(enum.Enum):
     PENDENTE = "PENDENTE"
     FEITO = "FEITO"
     REVISAO = "REVISAO"
+
+class DocumentSubtipo(enum.Enum):
+    REQUISICAO_COMPRA = "REQUISICAO_COMPRA"
+    NF_PRODUTO = "NF_PRODUTO"
+    NF_SERVICO = "NF_SERVICO"
+    NF_FRETE = "NF_FRETE"
+    NF_MATERIAL_INTERNO = "NF_MATERIAL_INTERNO"
 
 class Email(Base):
     __tablename__ = "emails"
@@ -37,7 +49,7 @@ class Email(Base):
     corpo = Column(Text, nullable=True)
     data_hora_email = Column(DateTime(timezone=True), nullable=True)
     link_email_original = Column(String, nullable=True)
-    criado_em = Column(DateTime(timezone=True), default=datetime.utcnow)
+    criado_em = Column(DateTime(timezone=True), default=now_utc)
 
     anexos = relationship("Anexo", back_populates="email")
     documentos = relationship("DocumentoFinanceiro", back_populates="email")
@@ -52,6 +64,8 @@ class DocumentoFinanceiro(Base):
     numero_documento = Column(String, nullable=True)
     valor = Column(Numeric(12, 2), nullable=True)
     status = Column(Enum(DocumentStatus), default=DocumentStatus.RECEBIDO)
+    subtipo = Column(Enum(DocumentSubtipo), nullable=True)
+    metadados = Column(String, nullable=True)  # JSON serialized string for extra extraction
     confirmado_em = Column(DateTime(timezone=True), nullable=True)
     confirmado_por = Column(String, nullable=True)
 
@@ -66,7 +80,7 @@ class Anexo(Base):
     tipo = Column(String, nullable=False)
     caminho_arquivo = Column(String, nullable=False)
     preview_imagem = Column(Text, nullable=True)  # base64 or path
-    criado_em = Column(DateTime(timezone=True), default=datetime.utcnow)
+    criado_em = Column(DateTime(timezone=True), default=now_utc)
 
     email = relationship("Email", back_populates="anexos")
 
@@ -76,6 +90,6 @@ class Historico(Base):
     documento_id = Column(UUID(as_uuid=True), ForeignKey("documentos_financeiros.id"), nullable=False)
     evento = Column(String, nullable=False)
     usuario = Column(String, nullable=True)
-    data_hora = Column(DateTime(timezone=True), default=datetime.utcnow)
+    data_hora = Column(DateTime(timezone=True), default=now_utc)
 
     documento = relationship("DocumentoFinanceiro", back_populates="historicos")

@@ -56,6 +56,7 @@ Outlook / Microsoft Graph (recomendado para caixas Exchange/Outlook online):
 > OUTLOOK_CLIENT_SECRET=<client_secret>
 > OUTLOOK_USER=financeiro@empresa.com
 > OUTLOOK_FOLDER=Inbox
+> LOCAL_TZ=America/Sao_Paulo
 
 > DICA: Se preferir não usar Microsoft Graph, o coletor também suporta IMAP como fallback.
 
@@ -93,7 +94,7 @@ npm run dev
 ## Como configurar seu e-mail (onde colocar seu e-mail) 📧
 
 - Coloque as credenciais do e-mail em `.env` nas variáveis `IMAP_USER`, `IMAP_PASS` e `IMAP_HOST`.
-- Por segurança, use app password quando disponível (Gmail/Office365).
+- Por segurança, use app password quando disponível (Office365).
 - Para testar localmente, há um script de exemplo: `backend/app/scripts/fetch_emails_sample.py`.
 
 Exemplo de execução do coletor (no container):
@@ -110,6 +111,14 @@ python -m app.scripts.fetch_emails_sample
 
 > Nota: o coletor atual é um stub — implementa a conexão IMAP mínima e deve ser estendido para gravar e anexos e assegurar idempotência.
 
+**Rodando o ingestor completo (Outlook)**
+
+1. Configure a app no Azure AD e preencha as variáveis `OUTLOOK_TENANT_ID`, `OUTLOOK_CLIENT_ID`, `OUTLOOK_CLIENT_SECRET`, `OUTLOOK_USER` e `LOCAL_TZ` no `.env`.
+2. Suba os serviços: `docker-compose up --build -d`.
+3. Execute o ingestor de exemplo dentro do container: `docker-compose exec backend python -m app.scripts.fetch_emails_sample`.
+4. Verifique `GET /documentos/` e abra o frontend (`http://localhost:5173`) para conferir classificação, extração, previews e link para o e-mail original.
+
+
 ---
 
 ## Endpoints principais (FastAPI)
@@ -124,7 +133,8 @@ python -m app.scripts.fetch_emails_sample
 ## Scripts úteis
 
 - `backend/app/scripts/seed.py` — cria um exemplo no banco
-- `backend/app/scripts/fetch_emails_sample.py` — exemplo de execução do coletor (IMAP)
+- `backend/app/scripts/fetch_emails_sample.py` — exemplo de execução do coletor / ingestor (Outlook/IMAP)
+- `backend/app/services/email_ingestor.py` — pipeline de ingestão para Outlook (idempotência, persistência, classificação, extração, preview, histórico)
 
 ---
 

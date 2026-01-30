@@ -36,6 +36,16 @@ def main():
             print('fetch_outlook_emails retornou:', len(msgs), 'mensagens')
             for m in msgs[:5]:
                 print('- ', m['message_id'], m['assunto'], 'attach:', len(m['attachments']))
+
+            # If we have configuration for ingesting, run EmailIngestor
+            from app.services.email_ingestor import EmailIngestor
+            try:
+                ingestor = EmailIngestor(OUTLOOK_TENANT_ID, OUTLOOK_CLIENT_ID, OUTLOOK_CLIENT_SECRET, OUTLOOK_USER, folder=OUTLOOK_FOLDER)
+                docs = ingestor.ingest(top=20)
+                print('Ingested', len(docs), 'document(s)')
+            except Exception as e:
+                print('Erro ao ingestar mensagens:', e)
+
         except Exception as e:
             print('Erro ao executar fetch_outlook_emails:', e)
         return
